@@ -1,0 +1,12 @@
+// wordcount.hos: `yes | head -n 5`
+// expected output: y\ny\ny\ny
+
+pipeline {"id": "infinite"}
+
+start {"id": "/infinite/yes", "exe": "yes", "argv": []}
+start {"id": "/infinite/head", "exe": "head", "argv": ["-n", "3"]}
+set {"id": "/infinite/out", "write": "file://output.txt"}
+
+pipe {"src": "/infinite/yes[stdout]", "dst": "/infinite/head[stdin]"}
+pipe {"src": "/infinite/head[stdout]", "dst": "/infinite/out"}
+exit {"when": "/infinite/head"}

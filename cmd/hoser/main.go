@@ -1,89 +1,121 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
-	"io"
-	"log"
 	"os"
-	"strings"
+	"os/signal"
+	"path/filepath"
 
-	"github.com/masp/hoser-runtime/osruntime"
-	"github.com/masp/hoser-runtime/plan"
+	"github.com/c-bata/go-prompt"
+	"github.com/hoser-io/hoser-runtime/hosercmd"
+	"github.com/hoser-io/hoser-runtime/interpreter"
+	"github.com/hoser-io/hoser-runtime/supervisor"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 var (
-	debug = flag.Bool("d", false, "Print debug information to stderr")
+	help  = flag.Bool("h", false, "Show help info")
+	debug = flag.Bool("v", false, "Print debug information to stderr")
 )
 
-func main() {
-	flag.Parse()
-	if !*debug {
-		log.SetOutput(io.Discard)
-	} else {
-		log.SetOutput(os.Stderr)
-	}
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "usage: %s [pipes]\n", os.Args[0])
-	}
-
-	path, pipeName, err := parseFile()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "bad path: %v\n", err)
-		return
-	}
-
-	planFile, err := os.Open(path)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v", err)
-		return
-	}
-	pipes, err := plan.Unmarshal(planFile)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "invalid hoser pipe file '%s': %v\n", path, err)
-		return
-	}
-
-	var chosenPipe *plan.Pipe
-	if pipeName == "" {
-		chosenPipe = &pipes[0]
-	} else {
-		for _, pipe := range pipes {
-			if pipe.Name == pipeName {
-				chosenPipe = &pipe
-			}
-		}
-		if chosenPipe == nil {
-			fmt.Fprintf(os.Stderr, "no pipe with name '%s' found in '%s'\n", pipeName, path)
-			return
-		}
-	}
-	prog, err := osruntime.Build(*chosenPipe, map[string]any{
-		"stdin":  os.Stdin,
-		"stdout": os.Stdout,
-		"stderr": os.Stderr,
-	})
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "build failed: %v", err)
-		return
-	}
-	err = prog.Start()
-	if err != nil {
-		log.Fatal(err)
-	}
-	prog.Wait()
+func usage() {
+	fmt.Fprintf(os.Stderr, "usage: %s [.hos file] [-v name=value]\n", os.Args[0])
 }
 
-func parseFile() (string, string, error) {
-	if flag.Arg(0) == "" {
-		return "", "", fmt.Errorf("no Hoser file specified\n")
+func main() {
+	os.Exit(run())
+}
+
+func run() int {
+	flag.Parse()
+	if flag.NArg() < 1 {
+		fmt.Fprintf(os.Stderr, "bad path: no Hoser file given\n")
+		os.Exit(1)
+	}
+	hosfile := flag.Arg(0)
+	hosfd, err := os.Open(hosfile)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "no Hoser file found: %v\n", err)
+		os.Exit(1)
+	}
+	cmds, err := hosercmd.ReadFiles(hosfd)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s: %v\n", hosfile, err)
+		if err, ok := err.(*hosercmd.Error); ok {
+			fmt.Fprintf(os.Stderr, "  context: %s\n", string(err.Context))
+		}
+		os.Exit(1)
 	}
 
-	parts := strings.Split(flag.Arg(0), ":")
-	if len(parts) == 1 {
-		return flag.Arg(0), "", nil
-	} else if len(parts) == 2 {
-		return parts[0], parts[1], nil
+	var lvl zerolog.Level
+	if *debug {
+		lvl = zerolog.DebugLevel
+	} else {
+		lvl = zerolog.WarnLevel
 	}
-	return "", "", fmt.Errorf("path has too many parts, expected only file.json:pipe")
+	log.Logger = zerolog.New(zerolog.NewConsoleWriter()).Level(lvl)
+	flag.Usage = usage
+
+	super := supervisor.New(filepath.Join(os.TempDir(), fmt.Sprintf("hoser.%d", os.Getpid())))
+	defer super.Close()
+
+	ctx, stop := context.WithCancel(context.Background())
+	defer stop()
+	errch := super.ServeBackground(ctx)
+	preter := interpreter.New(super)
+	for _, cmd := range cmds {
+		err := preter.Exec(ctx, cmd)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			cmdBytes, _ := cmd.Body.MarshalJSON()
+			fmt.Fprintf(os.Stderr, "\tcontext: %s %s\n", cmd.Code, cmdBytes)
+		}
+	}
+
+	// for {
+	// 	t := prompt.Input("> ", completer)
+	// 	if t == "exit" {
+	// 		stop()
+	// 		break
+	// 	} else {
+	// 		cmd, err := hosercmd.Read([]byte(t))
+	// 		if err != nil {
+	// 			fmt.Fprintf(os.Stderr, "Bad command: %v", err)
+	// 			continue
+	// 		}
+	// 		err = preter.Exec(ctx, cmd)
+	// 		if err != nil {
+	// 			fmt.Fprintf(os.Stderr, "Fail: %v", err)
+	// 			continue
+	// 		}
+	// 		fmt.Fprintf(os.Stderr, "OK")
+	// 	}
+	// }
+
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt)
+	for {
+		select {
+		case err = <-errch:
+			// context.Canceled is sent if the pipeline is canceled through an exit command
+			if err != nil && err != context.Canceled {
+				fmt.Fprintf(os.Stderr, "serve failed: %v\n", err)
+				stop()
+				return 1
+			}
+			fmt.Fprintf(os.Stderr, "exiting\n")
+			return 0
+		case s := <-sig:
+			fmt.Fprintf(os.Stderr, "signal: %v", s)
+			return 1
+		}
+	}
+}
+
+func completer(d prompt.Document) []prompt.Suggest {
+	s := []prompt.Suggest{}
+	return prompt.FilterHasPrefix(s, d.GetWordBeforeCursor(), true)
 }

@@ -1,0 +1,14 @@
+// wordcount.hos: `cat input.txt | grep Castle | wc -l`
+// expected output: 1
+
+pipeline {"id": "wordcount"}
+
+set {"id": "/wordcount/in", "read": "file://input.txt"}
+start {"id": "/wordcount/filter", "exe": "grep", "argv": ["-v", "Castle"]}
+start {"id": "/wordcount/counter", "exe": "wc", "argv": ["-l"]}
+set {"id": "/wordcount/out", "write": "file://output.txt"}
+
+pipe {"src": "/wordcount/in", "dst": "/wordcount/filter[stdin]"}
+pipe {"src": "/wordcount/filter[stdout]", "dst": "/wordcount/counter[stdin]"}
+pipe {"src": "/wordcount/counter[stdout]", "dst": "/wordcount/out"}
+exit {"when": "/wordcount/counter"}

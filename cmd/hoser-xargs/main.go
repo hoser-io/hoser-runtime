@@ -17,44 +17,77 @@ import (
 const MaxLineSize = 5024
 
 var (
-	replacementToken = flag.String("I", "{}", "replacement token (token will be replaced with line in stdin)")
+	replacementToken = flag.String("tok", "{}", "Replacement token (token will be replaced with line in stdin)")
+	errs             = flag.String("errs", "", "A destination file to write error streams that child processes produce")
+	parallelism      = flag.Int("p", 1, "Number of concurrent processes to execute. If zero, maximum number of cores (default 1)")
 )
 
 func main() {
+	flag.Parse()
 	log.SetOutput(os.Stderr)
 
-	cmdArgs := flag.Args()
+	// cmdArgs := flag.Args()
+	// var errsFd *os.File
+	// if *errs != "" {
+	// 	errsFd, err = os.Open(*errs)
+	// 	if err != nil {
+	// 		log.Printf("bad errs flag '%s': %v", *errs, err)
+	// 	}
+	// }
 
 	buf := bufio.NewReaderSize(os.Stdin, MaxLineSize)
 	var wg sync.WaitGroup
 	defer wg.Wait()
 	for {
-		newInput, err := buf.ReadString('\n')
+		line, err := buf.ReadString('\n')
 		if err != nil {
 			log.Printf("stdin closed: %v", err)
 			return
 		}
-		newInput = strings.TrimSuffix(newInput, "\n")
+		line = strings.TrimSuffix(line, "\n")
+		if len(line) == 0 {
+			continue // skip empty lines
+		}
 		wg.Add(1)
-		line := 1
 		go func() {
 			defer wg.Done()
-			cmd := execLine(cmdArgs, newInput)
-			_, stdoutW, err := os.Pipe()
-			if err != nil {
-				log.Printf("[line %d]: could not create pipe for stdout", line)
-			}
-			_, stderrW, err := os.Pipe()
-			if err != nil {
-				log.Printf("[line %d]: could not create pipe for stderr", line)
-			}
-			cmd.Stdout = stdoutW
-			cmd.Stderr = stderrW
-			err = cmd.Run()
-			if err != nil {
-				log.Printf("[line %d] pid %d exited: %v", line, cmd.Process.Pid, err)
-			}
 		}()
+	}
+}
+
+type job struct {
+	GivenArgs []string
+	Line      string
+	LineNum   int
+}
+
+func execJob(j job, outCh, errCh chan string) {
+	cmd := execLine(j.GivenArgs, j.Line)
+	stdoutR, stdoutW, err := os.Pipe()
+	if err != nil {
+		log.Printf("[line %d]: could not create pipe for stdout", j.LineNum)
+		return
+	}
+	defer stdoutR.Close()
+	defer stdoutW.Close()
+
+	cmd.Stdout = stdoutW
+	var stderrR, stderrW *os.File
+	if errCh != nil {
+		stderrR, stderrW, err = os.Pipe()
+		if err != nil {
+			log.Printf("[line %d]: could not create pipe for stderr", j.LineNum)
+			return
+		}
+		cmd.Stderr = stderrW
+		errCh <- stderrR.Name()
+	}
+	outCh <- stdoutR.Name()
+
+	err = cmd.Run()
+	if err != nil {
+		log.Printf("[line %d] fail: pid '%v' run: %v", j.LineNum, cmd.Process.Pid, err)
+		return
 	}
 }
 
