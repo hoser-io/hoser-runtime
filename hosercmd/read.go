@@ -44,27 +44,27 @@ func (e *Error) Error() string {
 
 func Read(line []byte) (Command, error) {
 	code, rest := readCode(line)
-	var body Body
+	var cmd Command
 	switch code {
-	case Start:
-		body = &StartBody{}
-	case Pipeline:
-		body = &PipelineBody{}
-	case Set:
-		body = &SetBody{}
-	case Pipe:
-		body = &PipeBody{}
-	case Exit:
-		body = &ExitBody{}
+	case CodeStart:
+		cmd = &Start{}
+	case CodePipeline:
+		cmd = &Pipeline{}
+	case CodeSet:
+		cmd = &Set{}
+	case CodePipe:
+		cmd = &Pipe{}
+	case CodeExit:
+		cmd = &Exit{}
 	default:
-		return Command{}, fmt.Errorf("unrecognized command: %s", code)
+		return nil, fmt.Errorf("unrecognized command: %s", code)
 	}
 
-	err := body.UnmarshalJSON(rest)
+	err := cmd.UnmarshalJSON(rest)
 	if err != nil {
-		return Command{}, err
+		return cmd, err
 	}
-	return Command{Code: code, Body: body}, nil
+	return cmd, nil
 }
 
 func readCode(line []byte) (code Code, rest []byte) {

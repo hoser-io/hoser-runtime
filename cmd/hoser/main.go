@@ -17,12 +17,13 @@ import (
 )
 
 var (
-	help  = flag.Bool("h", false, "Show help info")
-	debug = flag.Bool("v", false, "Print debug information to stderr")
+	help      = flag.Bool("h", false, "Show help info")
+	debug     = flag.Bool("v", false, "Print debug information to stderr")
+	shellPipe = flag.String("p", "", "Execute a shell pipe command (a la Unix pipes)")
 )
 
 func usage() {
-	fmt.Fprintf(os.Stderr, "usage: %s [.hos file] [-v name=value]\n", os.Args[0])
+	fmt.Fprintf(os.Stderr, "usage: %s [.hos file] [-v name=value] [-s]\n", os.Args[0])
 }
 
 func main() {
@@ -41,6 +42,7 @@ func run() int {
 		fmt.Fprintf(os.Stderr, "no Hoser file found: %v\n", err)
 		os.Exit(1)
 	}
+
 	cmds, err := hosercmd.ReadFiles(hosfd)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s: %v\n", hosfile, err)
@@ -56,7 +58,9 @@ func run() int {
 	} else {
 		lvl = zerolog.WarnLevel
 	}
-	log.Logger = zerolog.New(zerolog.NewConsoleWriter()).Level(lvl)
+	log.Logger = log.Output(zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
+		w.Out = os.Stderr
+	})).Level(lvl)
 	flag.Usage = usage
 
 	super := supervisor.New(filepath.Join(os.TempDir(), fmt.Sprintf("hoser.%d", os.Getpid())))
@@ -66,34 +70,15 @@ func run() int {
 	defer stop()
 	errch := super.ServeBackground(ctx)
 	preter := interpreter.New(super)
+
 	for _, cmd := range cmds {
 		err := preter.Exec(ctx, cmd)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
-			cmdBytes, _ := cmd.Body.MarshalJSON()
-			fmt.Fprintf(os.Stderr, "\tcontext: %s %s\n", cmd.Code, cmdBytes)
+			cmdBytes, _ := cmd.MarshalJSON()
+			fmt.Fprintf(os.Stderr, "\tcontext: %s %s\n", cmd.Code(), cmdBytes)
 		}
 	}
-
-	// for {
-	// 	t := prompt.Input("> ", completer)
-	// 	if t == "exit" {
-	// 		stop()
-	// 		break
-	// 	} else {
-	// 		cmd, err := hosercmd.Read([]byte(t))
-	// 		if err != nil {
-	// 			fmt.Fprintf(os.Stderr, "Bad command: %v", err)
-	// 			continue
-	// 		}
-	// 		err = preter.Exec(ctx, cmd)
-	// 		if err != nil {
-	// 			fmt.Fprintf(os.Stderr, "Fail: %v", err)
-	// 			continue
-	// 		}
-	// 		fmt.Fprintf(os.Stderr, "OK")
-	// 	}
-	// }
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt)
@@ -102,14 +87,14 @@ func run() int {
 		case err = <-errch:
 			// context.Canceled is sent if the pipeline is canceled through an exit command
 			if err != nil && err != context.Canceled {
-				fmt.Fprintf(os.Stderr, "serve failed: %v\n", err)
+				log.Error().Err(err).Msg("serve failed)")
 				stop()
 				return 1
 			}
-			fmt.Fprintf(os.Stderr, "exiting\n")
+			log.Info().Msgf("exiting")
 			return 0
 		case s := <-sig:
-			fmt.Fprintf(os.Stderr, "signal: %v", s)
+			log.Info().Msgf("signal: %v", s)
 			return 1
 		}
 	}

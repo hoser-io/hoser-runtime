@@ -24,9 +24,9 @@ func TestReadFiles(t *testing.T) {
 start {"id": "2"}
 start {"id": "3"}`,
 			[]Command{
-				{Start, &StartBody{Id: "1"}},
-				{Start, &StartBody{Id: "2"}},
-				{Start, &StartBody{Id: "3"}},
+				&Start{Id: "1"},
+				&Start{Id: "2"},
+				&Start{Id: "3"},
 			},
 			false,
 		},
@@ -34,14 +34,14 @@ start {"id": "3"}`,
 			"bad line", `
 start {"id": "1"}	
 notacode`,
-			[]Command{{Start, &StartBody{Id: "1"}}},
+			[]Command{&Start{Id: "1"}},
 			true,
 		},
 		{
 			"bad comment", `
 start {"id": "1"}	
 /`,
-			[]Command{{Start, &StartBody{Id: "1"}}},
+			[]Command{&Start{Id: "1"}},
 			true,
 		},
 	}
@@ -66,11 +66,11 @@ func TestRead(t *testing.T) {
 		want    Command
 		wantErr bool
 	}{
-		{"start", `start {"id":"a"}`, Command{Code: Start, Body: &StartBody{Id: "a"}}, false},
-		{"bad code", `thisisbad {"id":"a"}`, Command{}, true},
-		{"no body", `start`, Command{}, true},
-		{"body not json", `start {`, Command{}, true},
-		{"too long", reallyLongString, Command{}, true},
+		{"start", `start {"id":"a"}`, &Start{Id: "a"}, false},
+		{"bad code", `thisisbad {"id":"a"}`, nil, true},
+		{"no body", `start`, nil, true},
+		{"body not json", `start {`, nil, true},
+		{"too long", reallyLongString, nil, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

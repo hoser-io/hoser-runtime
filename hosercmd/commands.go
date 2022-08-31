@@ -27,59 +27,74 @@ import (
 type Code string
 
 var (
-	Start    Code = "start"
-	Pipeline Code = "pipeline"
-	Set      Code = "set"
-	Pipe     Code = "pipe"
-	Exit     Code = "exit"
+	CodeStart    Code = "start"
+	CodePipeline Code = "pipeline"
+	CodeSet      Code = "set"
+	CodePipe     Code = "pipe"
+	CodeExit     Code = "exit"
 )
 
-type Command struct {
-	Code Code
-	Body Body
-}
-
-type Result = Body
-
-type Body interface {
+type Command interface {
 	UnmarshalJSON(body []byte) error
 	MarshalJSON() ([]byte, error)
+	Code() Code
 }
+type Result = Command
 
 //easyjson:json
-type PipelineBody struct {
+type Pipeline struct {
 	Id string
 }
 
+func (b *Pipeline) Code() Code {
+	return CodePipeline
+}
+
 //easyjson:json
-type SetBody struct {
+type Set struct {
 	Id          string
 	Read, Write string // URLs to read and write data to. Read creates a source, Write creates a sink.
 	Text        string // A fixed value for sources
 }
 
-func (sb *SetBody) IsSink() bool {
+func (sb *Set) Code() Code {
+	return CodeSet
+}
+
+func (sb *Set) IsSink() bool {
 	return sb.Write != ""
 }
 
-func (sb *SetBody) IsSpout() bool {
+func (sb *Set) IsSpout() bool {
 	return sb.Text != "" || sb.Read != ""
 }
 
 //easyjson:json
-type PipeBody struct {
+type Pipe struct {
 	Src, Dst string
 }
 
+func (b *Pipe) Code() Code {
+	return CodePipe
+}
+
 //easyjson:json
-type ExitBody struct {
+type Exit struct {
 	When string
 }
 
-type StartBody struct {
+func (b *Exit) Code() Code {
+	return CodeExit
+}
+
+type Start struct {
 	Id      string
 	ExeFile string
 	Argv    []Arg
+}
+
+func (sb *Start) Code() Code {
+	return CodeStart
 }
 
 type Arg interface {
@@ -107,7 +122,7 @@ func (sa StringArg) arg() {}
 func (na *NamedArg) arg() {}
 
 // Custom marshalling and unmarshalling for ProcCmd because of argv having irregular array args
-func (pc *StartBody) UnmarshalJSON(body []byte) error {
+func (pc *Start) UnmarshalJSON(body []byte) error {
 	r := &jlexer.Lexer{Data: body}
 	r.Delim('{')
 	for !r.IsDelim('}') {
@@ -139,12 +154,12 @@ func (pc *StartBody) UnmarshalJSON(body []byte) error {
 
 func ParseArgv(argv []byte) ([]Arg, error) {
 	r := &jlexer.Lexer{Data: argv}
-	var body StartBody
+	var body Start
 	body.unmarshalArgv(r)
 	return body.Argv, r.Error()
 }
 
-func (pc *StartBody) unmarshalArgv(r *jlexer.Lexer) {
+func (pc *Start) unmarshalArgv(r *jlexer.Lexer) {
 	r.Delim('[')
 	for !r.IsDelim(']') {
 		if r.IsDelim('{') {
@@ -166,7 +181,7 @@ func (pc *StartBody) unmarshalArgv(r *jlexer.Lexer) {
 	r.Delim(']')
 }
 
-func (pc StartBody) MarshalJSON() ([]byte, error) {
+func (pc Start) MarshalJSON() ([]byte, error) {
 	var wr jwriter.Writer
 	wr.RawByte('{')
 	wr.RawString(`"id":`)

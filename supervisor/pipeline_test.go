@@ -199,3 +199,26 @@ func TestStop(t *testing.T) {
 	err = <-errch
 	assert.ErrorIs(t, err, context.Canceled)
 }
+
+func TestStopForSink(t *testing.T) {
+	p := NewTestPipe(t)
+	echoer, err := p.StartProcess("echoer", "echo", args("hello"))
+	assert.NoError(t, err)
+
+	out := NewBufferSink()
+	outVar, err := p.CreateSink("out", out)
+	assert.NoError(t, err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	errch := p.Root.ServeBackground(ctx)
+	echoer.Outs["stdout"].SendTo(outVar)
+
+	err = p.ExitWhen(ctx, outVar.Name)
+	assert.NoError(t, err)
+
+	assert.Equal(t, "hello\n", out.String())
+	err = <-errch
+	assert.ErrorIs(t, err, context.Canceled)
+}

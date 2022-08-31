@@ -27,8 +27,8 @@ func New(target *supervisor.Supervisor) *Interpreter {
 }
 
 func (i *Interpreter) Exec(ctx context.Context, cmd hosercmd.Command) error {
-	switch b := cmd.Body.(type) {
-	case *hosercmd.StartBody:
+	switch b := cmd.(type) {
+	case *hosercmd.Start:
 		id, err := hosercmd.ParseId(b.Id)
 		if err != nil {
 			return err
@@ -47,10 +47,10 @@ func (i *Interpreter) Exec(ctx context.Context, cmd hosercmd.Command) error {
 		defer cancel()
 		_, err = proc.Wait(ctx, []supervisor.ProcState{supervisor.ProcRunning})
 		return err
-	case *hosercmd.PipelineBody:
+	case *hosercmd.Pipeline:
 		_, err := i.Target.AddPipeline(b.Id)
 		return err
-	case *hosercmd.ExitBody:
+	case *hosercmd.Exit:
 		id, err := hosercmd.ParseId(b.When)
 		if err != nil {
 			return err
@@ -61,7 +61,7 @@ func (i *Interpreter) Exec(ctx context.Context, cmd hosercmd.Command) error {
 			return errMissingPipeline(id.Pipeline)
 		}
 		return pipeline.ExitWhen(ctx, id.Node)
-	case *hosercmd.SetBody:
+	case *hosercmd.Set:
 		id, err := hosercmd.ParseId(b.Id)
 		if err != nil {
 			return err
@@ -109,7 +109,7 @@ func (i *Interpreter) Exec(ctx context.Context, cmd hosercmd.Command) error {
 				return err
 			}
 		}
-	case *hosercmd.PipeBody:
+	case *hosercmd.Pipe:
 		srcId, err := hosercmd.ParseId(b.Src)
 		if err != nil {
 			return fmt.Errorf("bad src id: %w", err)
@@ -139,12 +139,16 @@ func (i *Interpreter) Exec(ctx context.Context, cmd hosercmd.Command) error {
 		}
 		src.SendTo(dst)
 	default:
-		return fmt.Errorf("unrecognized command: %s", cmd.Code)
+		return fmt.Errorf("unrecognized command: %s", cmd.Code())
 	}
 	return nil
 }
 
-func parseSinkValue(body *hosercmd.SetBody) (io.WriteCloser, error) {
+func parseSinkValue(body *hosercmd.Set) (io.WriteCloser, error) {
+	if body.Write == "stdout" {
+		return os.Stdout, nil
+	}
+
 	if u, err := url.Parse(body.Write); err == nil {
 		if u.Scheme == "file" {
 			return os.OpenFile(filepath.Join(u.Host, u.Path), os.O_CREATE|os.O_WRONLY, 0666)
@@ -155,10 +159,15 @@ func parseSinkValue(body *hosercmd.SetBody) (io.WriteCloser, error) {
 	return nil, fmt.Errorf("command '%s' has no recognized format for a sink", body)
 }
 
-func parseSpoutValue(body *hosercmd.SetBody) (io.Reader, error) {
+func parseSpoutValue(body *hosercmd.Set) (io.Reader, error) {
 	if body.Text != "" {
 		return strings.NewReader(body.Text), nil
 	}
+
+	if body.Read == "stdin" {
+		return os.Stdin, nil
+	}
+
 	if u, err := url.Parse(body.Read); err == nil {
 		if u.Scheme == "file" {
 			return os.Open(filepath.Join(u.Host, u.Path))

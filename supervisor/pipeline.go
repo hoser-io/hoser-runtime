@@ -138,8 +138,9 @@ type Source interface {
 
 func (p *Pipeline) CreateSink(name string, sink io.WriteCloser) (*DstVar, error) {
 	v := &DstVar{
-		Name: name,
-		Sink: sink,
+		Name:   name,
+		Sink:   sink,
+		waitCh: make(chan struct{}),
 	}
 	p.Sinks[name] = v
 	return v, nil
@@ -158,15 +159,20 @@ func (p *Pipeline) CreateSpout(name string, src io.Reader) (*SrcVar, error) {
 	return v, nil
 }
 
-func (p *Pipeline) ExitWhen(ctx context.Context, process string) error {
-	proc, ok := p.Processes[process]
-	if !ok {
-		return errMissingProcess(process)
+func (p *Pipeline) ExitWhen(ctx context.Context, processOrVar string) error {
+	proc, ok := p.Processes[processOrVar]
+	if ok {
+		_, err := proc.Wait(ctx, []ProcState{ProcFinished})
+		p.Stop()
+		return err
 	}
-
-	_, err := proc.Wait(ctx, []ProcState{ProcFinished})
-	p.Stop()
-	return err
+	spout, ok := p.Sinks[processOrVar]
+	if ok {
+		spout.WaitClosed(ctx)
+		p.Stop()
+		return nil
+	}
+	return errMissingProcess(processOrVar)
 }
 
 func (p *Pipeline) Stop() {

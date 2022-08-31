@@ -17,7 +17,7 @@ var (
 	_ easyjson.Marshaler
 )
 
-func easyjsonF64fc67eDecodeGithubComHoserIoHoserRuntimeHosercmd(in *jlexer.Lexer, out *SetBody) {
+func easyjsonF64fc67eDecodeGithubComHoserIoHoserRuntimeHosercmd(in *jlexer.Lexer, out *Set) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -58,7 +58,7 @@ func easyjsonF64fc67eDecodeGithubComHoserIoHoserRuntimeHosercmd(in *jlexer.Lexer
 		in.Consumed()
 	}
 }
-func easyjsonF64fc67eEncodeGithubComHoserIoHoserRuntimeHosercmd(out *jwriter.Writer, in SetBody) {
+func easyjsonF64fc67eEncodeGithubComHoserIoHoserRuntimeHosercmd(out *jwriter.Writer, in Set) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -86,29 +86,29 @@ func easyjsonF64fc67eEncodeGithubComHoserIoHoserRuntimeHosercmd(out *jwriter.Wri
 }
 
 // MarshalJSON supports json.Marshaler interface
-func (v SetBody) MarshalJSON() ([]byte, error) {
+func (v Set) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
 	easyjsonF64fc67eEncodeGithubComHoserIoHoserRuntimeHosercmd(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
-func (v SetBody) MarshalEasyJSON(w *jwriter.Writer) {
+func (v Set) MarshalEasyJSON(w *jwriter.Writer) {
 	easyjsonF64fc67eEncodeGithubComHoserIoHoserRuntimeHosercmd(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
-func (v *SetBody) UnmarshalJSON(data []byte) error {
+func (v *Set) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
 	easyjsonF64fc67eDecodeGithubComHoserIoHoserRuntimeHosercmd(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
-func (v *SetBody) UnmarshalEasyJSON(l *jlexer.Lexer) {
+func (v *Set) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjsonF64fc67eDecodeGithubComHoserIoHoserRuntimeHosercmd(l, v)
 }
-func easyjsonF64fc67eDecodeGithubComHoserIoHoserRuntimeHosercmd1(in *jlexer.Lexer, out *PipelineBody) {
+func easyjsonF64fc67eDecodeGithubComHoserIoHoserRuntimeHosercmd1(in *jlexer.Lexer, out *Pipeline) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -143,7 +143,7 @@ func easyjsonF64fc67eDecodeGithubComHoserIoHoserRuntimeHosercmd1(in *jlexer.Lexe
 		in.Consumed()
 	}
 }
-func easyjsonF64fc67eEncodeGithubComHoserIoHoserRuntimeHosercmd1(out *jwriter.Writer, in PipelineBody) {
+func easyjsonF64fc67eEncodeGithubComHoserIoHoserRuntimeHosercmd1(out *jwriter.Writer, in Pipeline) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -156,29 +156,29 @@ func easyjsonF64fc67eEncodeGithubComHoserIoHoserRuntimeHosercmd1(out *jwriter.Wr
 }
 
 // MarshalJSON supports json.Marshaler interface
-func (v PipelineBody) MarshalJSON() ([]byte, error) {
+func (v Pipeline) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
 	easyjsonF64fc67eEncodeGithubComHoserIoHoserRuntimeHosercmd1(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
-func (v PipelineBody) MarshalEasyJSON(w *jwriter.Writer) {
+func (v Pipeline) MarshalEasyJSON(w *jwriter.Writer) {
 	easyjsonF64fc67eEncodeGithubComHoserIoHoserRuntimeHosercmd1(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
-func (v *PipelineBody) UnmarshalJSON(data []byte) error {
+func (v *Pipeline) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
 	easyjsonF64fc67eDecodeGithubComHoserIoHoserRuntimeHosercmd1(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
-func (v *PipelineBody) UnmarshalEasyJSON(l *jlexer.Lexer) {
+func (v *Pipeline) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjsonF64fc67eDecodeGithubComHoserIoHoserRuntimeHosercmd1(l, v)
 }
-func easyjsonF64fc67eDecodeGithubComHoserIoHoserRuntimeHosercmd2(in *jlexer.Lexer, out *PipeBody) {
+func easyjsonF64fc67eDecodeGithubComHoserIoHoserRuntimeHosercmd2(in *jlexer.Lexer, out *Pipe) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -215,7 +215,7 @@ func easyjsonF64fc67eDecodeGithubComHoserIoHoserRuntimeHosercmd2(in *jlexer.Lexe
 		in.Consumed()
 	}
 }
-func easyjsonF64fc67eEncodeGithubComHoserIoHoserRuntimeHosercmd2(out *jwriter.Writer, in PipeBody) {
+func easyjsonF64fc67eEncodeGithubComHoserIoHoserRuntimeHosercmd2(out *jwriter.Writer, in Pipe) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -233,29 +233,29 @@ func easyjsonF64fc67eEncodeGithubComHoserIoHoserRuntimeHosercmd2(out *jwriter.Wr
 }
 
 // MarshalJSON supports json.Marshaler interface
-func (v PipeBody) MarshalJSON() ([]byte, error) {
+func (v Pipe) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
 	easyjsonF64fc67eEncodeGithubComHoserIoHoserRuntimeHosercmd2(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
-func (v PipeBody) MarshalEasyJSON(w *jwriter.Writer) {
+func (v Pipe) MarshalEasyJSON(w *jwriter.Writer) {
 	easyjsonF64fc67eEncodeGithubComHoserIoHoserRuntimeHosercmd2(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
-func (v *PipeBody) UnmarshalJSON(data []byte) error {
+func (v *Pipe) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
 	easyjsonF64fc67eDecodeGithubComHoserIoHoserRuntimeHosercmd2(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
-func (v *PipeBody) UnmarshalEasyJSON(l *jlexer.Lexer) {
+func (v *Pipe) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjsonF64fc67eDecodeGithubComHoserIoHoserRuntimeHosercmd2(l, v)
 }
-func easyjsonF64fc67eDecodeGithubComHoserIoHoserRuntimeHosercmd3(in *jlexer.Lexer, out *ExitBody) {
+func easyjsonF64fc67eDecodeGithubComHoserIoHoserRuntimeHosercmd3(in *jlexer.Lexer, out *Exit) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -290,7 +290,7 @@ func easyjsonF64fc67eDecodeGithubComHoserIoHoserRuntimeHosercmd3(in *jlexer.Lexe
 		in.Consumed()
 	}
 }
-func easyjsonF64fc67eEncodeGithubComHoserIoHoserRuntimeHosercmd3(out *jwriter.Writer, in ExitBody) {
+func easyjsonF64fc67eEncodeGithubComHoserIoHoserRuntimeHosercmd3(out *jwriter.Writer, in Exit) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -303,25 +303,25 @@ func easyjsonF64fc67eEncodeGithubComHoserIoHoserRuntimeHosercmd3(out *jwriter.Wr
 }
 
 // MarshalJSON supports json.Marshaler interface
-func (v ExitBody) MarshalJSON() ([]byte, error) {
+func (v Exit) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
 	easyjsonF64fc67eEncodeGithubComHoserIoHoserRuntimeHosercmd3(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
-func (v ExitBody) MarshalEasyJSON(w *jwriter.Writer) {
+func (v Exit) MarshalEasyJSON(w *jwriter.Writer) {
 	easyjsonF64fc67eEncodeGithubComHoserIoHoserRuntimeHosercmd3(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
-func (v *ExitBody) UnmarshalJSON(data []byte) error {
+func (v *Exit) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
 	easyjsonF64fc67eDecodeGithubComHoserIoHoserRuntimeHosercmd3(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
-func (v *ExitBody) UnmarshalEasyJSON(l *jlexer.Lexer) {
+func (v *Exit) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjsonF64fc67eDecodeGithubComHoserIoHoserRuntimeHosercmd3(l, v)
 }

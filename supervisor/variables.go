@@ -2,6 +2,7 @@ package supervisor
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 
@@ -25,8 +26,13 @@ func (v *SrcVar) String() string {
 }
 
 type DstVar struct {
-	Name string // unique ID in pipeline
-	Sink io.WriteCloser
+	Name   string // unique ID in pipeline
+	Sink   io.WriteCloser
+	waitCh chan struct{}
+}
+
+func NewSink(name string, dst io.WriteCloser) *DstVar {
+	return &DstVar{Name: name, Sink: dst, waitCh: make(chan struct{})}
 }
 
 func (v *DstVar) String() string {
@@ -39,7 +45,17 @@ func (v *DstVar) Write(p []byte) (n int, err error) {
 
 func (v *DstVar) Close() error {
 	log.Debug().Str("var", v.Name).Msg("Closing (EOF)")
+	close(v.waitCh)
 	return v.Sink.Close()
+}
+
+// WaitClosed will block until this variable is closed with Close()
+func (v *DstVar) WaitClosed(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+	case <-v.waitCh:
+	}
+	return nil
 }
 
 type BufferSink struct {

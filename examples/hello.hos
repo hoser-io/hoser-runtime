@@ -1,0 +1,5 @@
+pipeline {"id": "hello"}
+start {"id": "/hello/echo", "exe": "echo", "argv": ["hello\nthere!\n"]}
+set {"id": "/hello/stdout", "write": "stdout"}
+pipe {"src": "/hello/echo[stdout]", "dst": "/hello/stdout"}
+exit {"when": "/hello/stdout"}

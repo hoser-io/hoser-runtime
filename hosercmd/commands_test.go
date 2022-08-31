@@ -11,18 +11,18 @@ func TestCmd_Unmarshal(t *testing.T) {
 	tests := []struct {
 		name     string
 		text     string
-		wantProc StartBody
+		wantProc Start
 		wantErr  bool
 	}{
-		{"no args", `{"id":"/pipeline/a","exe":"awk","argv":[]}`, StartBody{Id: "/pipeline/a", ExeFile: "awk"}, false},
-		{"string args", `{"argv":["a","b","c"]}`, StartBody{Argv: []Arg{StringArg("a"), StringArg("b"), StringArg("c")}}, false},
-		{"in/out args", `{"argv":[{"out":"a"},"c",{"in":"b"}]}`, StartBody{Argv: []Arg{&NamedArg{Out: "a"}, StringArg("c"), &NamedArg{In: "b"}}}, false},
-		{"unknown field", `{"args":[]}`, StartBody{}, true},
-		{"bad json", `{"argv":[{"out"}]}`, StartBody{}, true},
+		{"no args", `{"id":"/pipeline/a","exe":"awk","argv":[]}`, Start{Id: "/pipeline/a", ExeFile: "awk"}, false},
+		{"string args", `{"argv":["a","b","c"]}`, Start{Argv: []Arg{StringArg("a"), StringArg("b"), StringArg("c")}}, false},
+		{"in/out args", `{"argv":[{"out":"a"},"c",{"in":"b"}]}`, Start{Argv: []Arg{&NamedArg{Out: "a"}, StringArg("c"), &NamedArg{In: "b"}}}, false},
+		{"unknown field", `{"args":[]}`, Start{}, true},
+		{"bad json", `{"argv":[{"out"}]}`, Start{}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var original StartBody
+			var original Start
 			var err error
 			if err = original.UnmarshalJSON([]byte(tt.text)); (err != nil) != tt.wantErr {
 				t.Errorf("ProcCmd.Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
@@ -35,7 +35,7 @@ func TestCmd_Unmarshal(t *testing.T) {
 
 			marshalled, err := original.MarshalJSON()
 			assert.NoError(t, err)
-			var after StartBody
+			var after Start
 			err = after.UnmarshalJSON(marshalled)
 			assert.NoError(t, err)
 			assert.Equal(t, original, after)
@@ -54,9 +54,9 @@ func Test_ReadsCommands(t *testing.T) {
 		wantCode Code
 		line     string
 	}{
-		{Start, `start {"id":"/pipeline/a","exe":"awk","argv":[]}`},
-		{Pipeline, `pipeline {"id":"/pipeline"}`},
-		{Pipe, `pipe {"src":"/pipeline/v1","dst":"/pipeline/v2"}`},
+		{CodeStart, `start {"id":"/pipeline/a","exe":"awk","argv":[]}`},
+		{CodePipeline, `pipeline {"id":"/pipeline"}`},
+		{CodePipe, `pipe {"src":"/pipeline/v1","dst":"/pipeline/v2"}`},
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%q", tt.line), func(t *testing.T) {
@@ -64,7 +64,7 @@ func Test_ReadsCommands(t *testing.T) {
 			assert.Equal(t, tt.wantCode, cmd.Code)
 			assert.NoError(t, err)
 
-			bytes, err := cmd.Body.MarshalJSON()
+			bytes, err := cmd.MarshalJSON()
 			assert.NoError(t, err)
 			assert.Equal(t, tt.line, fmt.Sprintf("%s %s", tt.wantCode, bytes))
 		})

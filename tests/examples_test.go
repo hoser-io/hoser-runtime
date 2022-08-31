@@ -61,8 +61,8 @@ func runExample(t *testing.T, path string) {
 		err := inter.Exec(ctx, cmd)
 		if err != nil {
 			super.Close()
-			cmdJson, _ := cmd.Body.MarshalJSON()
-			t.Fatalf("command '%s %s' failed: %v", cmd.Code, cmdJson, err)
+			cmdJson, _ := cmd.MarshalJSON()
+			t.Fatalf("command '%s %s' failed: %v", cmd.Code(), cmdJson, err)
 			return
 		}
 	}
