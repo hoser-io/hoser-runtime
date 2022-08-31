@@ -11,3 +11,28 @@ hoser -h
 ```
 
 See hoser-py on how to run sample pipelines using `hoser`.
+
+### Running with Docker
+
+With `docker` installed (see instructions on web), run:
+
+```
+make docker
+```
+
+which creates a local docker container with the tag `hoser:latest-amd64`. You can run `examples/hello.hos`
+by running:
+
+```sh
+> docker run hoser:latest-amd64
+4:05AM DBG state: waiting->running process=echo
+hello
+there!
+
+4:05AM DBG state: running->finished process=echo
+4:05AM DBG finished process=echo rc=0
+4:05AM DBG Closing (EOF) var=stdout
+4:05AM DBG stopping pipeline=hello
+4:05AM DBG echo/valves: Failed service 'stdout' (1.000000 failures of 5.000000), restarting: true, error: EOF supervisor=echo
+4:05AM INF exiting
+```
