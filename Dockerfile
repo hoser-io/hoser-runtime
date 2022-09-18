@@ -13,4 +13,6 @@ COPY . ./
 RUN mkdir build/
 RUN go build -o ./build ./...
 
-CMD [ "./build/hoser", "-v", "examples/hello.hos"]
+RUN mkdir -p /usr/bin && mv ./build/hoser /usr/bin/hoser
+
+CMD [ "hoser", "run", "-v", "examples/hello.hos" ]
