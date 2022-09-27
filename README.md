@@ -36,3 +36,7 @@ there!
 4:05AM DBG echo/valves: Failed service 'stdout' (1.000000 failures of 5.000000), restarting: true, error: EOF supervisor=echo
 4:05AM INF exiting
 ```
+
+### Related resources
+- https://adamdrake.com/command-line-tools-can-be-235x-faster-than-your-hadoop-cluster.html
+- https://livefreeordichotomize.com/posts/2019-06-04-using-awk-and-r-to-parse-25tb/

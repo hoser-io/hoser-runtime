@@ -8,7 +8,6 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/hoser-io/hoser-runtime/hosercmd"
 	"github.com/rs/zerolog/log"
 	"github.com/thejerf/suture/v4"
 )
@@ -71,15 +70,17 @@ func (p *Pipeline) FindProcess(name string) *Process {
 	return p.Processes[name]
 }
 
-func (p *Pipeline) StartProcess(name string, exe string, argv []hosercmd.Arg) (*Process, error) {
+func (p *Pipeline) StartProcess(name string, exe string, params *ProcessConfig) (*Process, error) {
 	path, err := exec.LookPath(exe)
 	if err != nil {
 		return nil, err
 	}
-	proc, err := NewProcess(name, path, ProcessConfig{
-		Argv:       argv,
-		PrivateDir: filepath.Join(p.cfg.DataDir, fmt.Sprintf("process.%s", name)),
-	})
+
+	if params == nil {
+		params = &ProcessConfig{}
+	}
+	params.PrivateDir = filepath.Join(p.cfg.DataDir, fmt.Sprintf("process.%s", name))
+	proc, err := NewProcess(name, path, *params)
 	if err != nil {
 		return nil, err
 	}

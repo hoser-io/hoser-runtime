@@ -14,9 +14,8 @@ func TestCmd_Unmarshal(t *testing.T) {
 		wantProc Start
 		wantErr  bool
 	}{
-		{"no args", `{"id":"/pipeline/a","exe":"awk","argv":[]}`, Start{Id: "/pipeline/a", ExeFile: "awk"}, false},
-		{"string args", `{"argv":["a","b","c"]}`, Start{Argv: []Arg{StringArg("a"), StringArg("b"), StringArg("c")}}, false},
-		{"in/out args", `{"argv":[{"out":"a"},"c",{"in":"b"}]}`, Start{Argv: []Arg{&NamedArg{Out: "a"}, StringArg("c"), &NamedArg{In: "b"}}}, false},
+		{"no args", `{"id":"/pipeline/a","exe":"awk"}`, Start{Id: "/pipeline/a", ExeFile: "awk"}, false},
+		{"string args", `{"argv":["a","b","c"]}`, Start{Argv: []string{"a", "b", "c"}}, false},
 		{"unknown field", `{"args":[]}`, Start{}, true},
 		{"bad json", `{"argv":[{"out"}]}`, Start{}, true},
 	}
@@ -31,22 +30,16 @@ func TestCmd_Unmarshal(t *testing.T) {
 				return
 			}
 
-			assert.Equal(t, tt.wantProc, original)
+			assert.EqualValues(t, tt.wantProc, original)
 
 			marshalled, err := original.MarshalJSON()
 			assert.NoError(t, err)
 			var after Start
 			err = after.UnmarshalJSON(marshalled)
 			assert.NoError(t, err)
-			assert.Equal(t, original, after)
+			assert.EqualValues(t, original, after)
 		})
 	}
-}
-
-func TestParseArgv(t *testing.T) {
-	args, err := ParseArgv([]byte(`["a", "b", {"in": "test"}]`))
-	assert.Len(t, args, 3)
-	assert.NoError(t, err)
 }
 
 func Test_ReadsCommands(t *testing.T) {
@@ -54,14 +47,14 @@ func Test_ReadsCommands(t *testing.T) {
 		wantCode Code
 		line     string
 	}{
-		{CodeStart, `start {"id":"/pipeline/a","exe":"awk","argv":[]}`},
+		{CodeStart, `start {"id":"/pipeline/a","exe":"awk","argv":[],"ports":{"in":{"dir":"out"}}}`},
 		{CodePipeline, `pipeline {"id":"/pipeline"}`},
 		{CodePipe, `pipe {"src":"/pipeline/v1","dst":"/pipeline/v2"}`},
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%q", tt.line), func(t *testing.T) {
 			cmd, err := Read([]byte(tt.line))
-			assert.Equal(t, tt.wantCode, cmd.Code)
+			assert.Equal(t, tt.wantCode, cmd.Code())
 			assert.NoError(t, err)
 
 			bytes, err := cmd.MarshalJSON()

@@ -21,7 +21,8 @@ func must[T any](v T, err error) T {
 
 func TestStartInputs(t *testing.T) {
 	proc, err := NewProcess("catter", must(exec.LookPath("cat")), ProcessConfig{
-		Argv:       []hosercmd.Arg{hosercmd.StringArg("-"), &hosercmd.NamedArg{In: "in"}},
+		Argv:       []string{"-", "$in"},
+		Ports:      map[string]hosercmd.Port{"in": hosercmd.Port{Dir: hosercmd.DirIn}},
 		PrivateDir: t.TempDir(),
 	})
 	assert.NoError(t, err)

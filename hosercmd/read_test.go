@@ -69,7 +69,7 @@ func TestRead(t *testing.T) {
 		{"start", `start {"id":"a"}`, &Start{Id: "a"}, false},
 		{"bad code", `thisisbad {"id":"a"}`, nil, true},
 		{"no body", `start`, nil, true},
-		{"body not json", `start {`, nil, true},
+		{"body not json", `start {`, &Start{}, true},
 		{"too long", reallyLongString, nil, true},
 	}
 	for _, tt := range tests {

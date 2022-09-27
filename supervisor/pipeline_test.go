@@ -60,7 +60,13 @@ func TestStartFailImmediately(t *testing.T) {
 
 func TestStartNamedArgs(t *testing.T) {
 	p := NewTestPipe(t)
-	cat, err := p.StartProcess("cat", "cat", []hosercmd.Arg{&hosercmd.NamedArg{In: "in"}, &hosercmd.NamedArg{Out: "out"}})
+	cat, err := p.StartProcess("catter", "cat", &ProcessConfig{
+		Argv: []string{"$in", "$out"},
+		Ports: map[string]hosercmd.Port{
+			"in":  {Dir: hosercmd.DirIn},
+			"out": {Dir: hosercmd.DirOut},
+		},
+	})
 	assert.NoError(t, err)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	errch := p.Root.ServeBackground(ctx)
@@ -96,11 +102,8 @@ func TestVariable2Variable(t *testing.T) {
 	assert.True(t, out.Closed)
 }
 
-func args(as ...string) (result []hosercmd.Arg) {
-	for _, a := range as {
-		result = append(result, hosercmd.StringArg(a))
-	}
-	return result
+func args(as ...string) (result *ProcessConfig) {
+	return &ProcessConfig{Argv: as}
 }
 
 func Test3StageFilter(t *testing.T) {

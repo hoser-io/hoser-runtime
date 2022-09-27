@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 	"syscall"
 
@@ -51,7 +52,8 @@ const (
 // to be recreated.
 
 type ProcessConfig struct {
-	Argv       []hosercmd.Arg
+	Argv       []string
+	Ports      map[string]hosercmd.Port
 	PrivateDir string
 	SharedDir  string
 }
@@ -61,6 +63,7 @@ func NewProcess(name, exePath string, cfg ProcessConfig) (*Process, error) {
 		Name:    name,
 		ExePath: exePath,
 		Argv:    cfg.Argv,
+		Ports:   cfg.Ports,
 		DataDir: cfg.PrivateDir,
 
 		stateNotify: make(chan struct{}, 1),
@@ -119,7 +122,8 @@ type Process struct {
 	DataDir string // directory to store process specific data
 	Name    string
 	ExePath string
-	Argv    []hosercmd.Arg
+	Argv    []string
+	Ports   map[string]hosercmd.Port
 
 	Cmd         *exec.Cmd
 	stateNotify chan struct{}
@@ -138,20 +142,15 @@ func (p *Process) SupervisorTree() suture.Service {
 }
 
 func (p *Process) buildValves() error {
-	for _, arg := range p.Argv {
-		switch v := arg.(type) {
-		case *hosercmd.NamedArg:
-			if v.IsIngress() {
-				_, err := p.AddInValve(v.Argname())
-				if err != nil {
-					return err
-				}
-			} else {
-				_, err := p.AddOutValve(v.Argname())
-				if err != nil {
-					return err
-				}
-			}
+	for name, port := range p.Ports {
+		var err error
+		if port.Dir == hosercmd.DirOut {
+			_, err = p.AddOutValve(name)
+		} else {
+			_, err = p.AddInValve(name)
+		}
+		if err != nil {
+			return err
 		}
 	}
 
@@ -169,20 +168,21 @@ func (p *Process) buildValves() error {
 }
 
 func (p *Process) buildCmd() (*exec.Cmd, error) {
-	var argv []string
-	for _, arg := range p.Argv {
-		switch v := arg.(type) {
-		case hosercmd.StringArg:
-			argv = append(argv, string(v))
-		case *hosercmd.NamedArg:
-			var valve Valve
-			if v.IsIngress() {
-				valve = p.Ins[v.Argname()]
-			} else {
-				valve = p.Outs[v.Argname()]
-			}
-			argv = append(argv, valve.Path())
+	argv := make([]string, len(p.Argv)) // we need to do any variable substitution here
+	var subs []string
+
+	// $portname replaced with the filepath
+	for name, port := range p.Ports {
+		if port.Dir == hosercmd.DirOut {
+			subs = append(subs, "$"+name, p.Outs[name].Path())
+		} else {
+			subs = append(subs, "$"+name, p.Ins[name].Path())
 		}
+	}
+
+	r := strings.NewReplacer(subs...)
+	for i := range p.Argv {
+		argv[i] = r.Replace(p.Argv[i])
 	}
 	cmd := exec.Command(p.ExePath, argv...)
 	cmd.Dir = p.DataDir

@@ -38,7 +38,10 @@ func (i *Interpreter) Exec(ctx context.Context, cmd hosercmd.Command) error {
 		if !ok {
 			return errMissingPipeline(id.Pipeline)
 		}
-		proc, err := pipeline.StartProcess(id.Node, b.ExeFile, b.Argv)
+		proc, err := pipeline.StartProcess(id.Node, b.ExeFile, &supervisor.ProcessConfig{
+			Argv:  b.Argv,
+			Ports: b.Ports,
+		})
 		if err != nil {
 			return err
 		}
